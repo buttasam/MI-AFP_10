@@ -68,7 +68,7 @@ update msg model =
       (model, getCurrenciesData)
     KeyInput code data ->
       log ("Input " ++ data ++ " " ++ code)
-      ({ model | firstValue = (calculateFirtValue data code model) }, Cmd.none)
+      ({ model | firstValue = (calculateFirstValue data code model) }, Cmd.none)
     UpdateSynch ->
       ({ model | synchData = not model.synchData }, Cmd.none)
     NewCurrencies (Ok data) ->
@@ -84,8 +84,8 @@ update msg model =
       (log (toString e))
       (model, Cmd.none)
 
-calculateFirtValue : String -> String -> Model -> Float
-calculateFirtValue data code model =
+calculateFirstValue : String -> String -> Model -> Float
+calculateFirstValue data code model =
   case String.toFloat data of
     Err _ ->
       log "error"
