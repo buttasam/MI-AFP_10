@@ -3,6 +3,8 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Time exposing (Time, second)
 import Debug exposing (log)
+import Http
+import Json.Decode as Decode
 
 
 main =
@@ -35,19 +37,22 @@ dummyCurrencies : List (Currency)
 dummyCurrencies = [Currency "USD" "Dollar" "$", Currency "EUR" "Euro" "€"]
 
 -- UPDATE
-
-type Msg = Tick Time
+type Msg = Tick Time | NewData (Result Http.Error String)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Tick time ->
       (log "ticked")
+      (model, getNewData "USD")
+    NewData (Ok data) ->
+      (log data)
+      (model, Cmd.none)
+    NewData (Err _) ->
+      (log "error")
       (model, Cmd.none)
 
-
 -- VIEW
-
 view : Model -> Html Msg
 view model =
     fieldset [] (generateInupts dummyCurrencies)
@@ -66,7 +71,21 @@ generateInupts currencies =
   List.map generateInput currencies
 
 -- SUBSCRIPTIONS
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Time.every (5 * second) Tick
+
+
+-- HTTP
+getNewData : String -> Cmd Msg
+getNewData code =
+  let
+    url =
+      "https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cat"
+  in
+    Http.send NewData (Http.get url decodeData)
+
+
+decodeData : Decode.Decoder String
+decodeData =
+  Decode.at ["data", "image_url"] Decode.string
