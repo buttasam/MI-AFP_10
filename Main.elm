@@ -17,6 +17,8 @@ main =
 
 -- MODEL
 
+apiToken = "9ee063ac99fb10c0d618f4e52ae1a30a91e4ef6f"
+
 type alias Currency =
   {
     code : String,
@@ -48,8 +50,8 @@ update msg model =
     NewData (Ok data) ->
       (log data)
       (model, Cmd.none)
-    NewData (Err _) ->
-      (log "error")
+    NewData (Err e) ->
+      (log (toString e))
       (model, Cmd.none)
 
 -- VIEW
@@ -81,11 +83,22 @@ getNewData : String -> Cmd Msg
 getNewData code =
   let
     url =
-      "https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=cat"
+      "https://dummy-currency-api.herokuapp.com/currencies"
+    request =
+            Http.request
+                { method = "GET"
+                , headers =
+                    [ Http.header "Authorization" (" token " ++ apiToken) ]
+                , url = url
+                , body = Http.emptyBody
+                , expect = Http.expectJson decodeData
+                , timeout = Nothing
+                , withCredentials = False
+                }
   in
-    Http.send NewData (Http.get url decodeData)
+    Http.send NewData request
 
 
 decodeData : Decode.Decoder String
 decodeData =
-  Decode.at ["data", "image_url"] Decode.string
+  Decode.at ["code"] Decode.string
