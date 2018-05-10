@@ -8,7 +8,6 @@ import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline as Pipeline exposing (decode, required)
 
 
-
 main =
   Html.program
     { init = init
@@ -28,6 +27,12 @@ type alias Currency =
     sign : String
   }
 
+type alias Exchange =
+  {
+    base : String,
+    rates : List (String, Float)
+  }
+
 type alias Model = Int
 
 model : Model
@@ -41,20 +46,30 @@ dummyCurrencies : List (Currency)
 dummyCurrencies = [Currency "USD" "Dollar" "$", Currency "EUR" "Euro" "€"]
 
 -- UPDATE
-type Msg = Tick Time | NewData (Result Http.Error (List Currency))
+type Msg = Tick Time
+         | NewExchange (Result Http.Error Exchange)
+         | NewCurrencies (Result Http.Error (List Currency))
+
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Tick time ->
       (log "ticked")
-      (model, getNewData "USD")
-    NewData (Ok data) ->
+      (model, getExchangeData "USD")
+    NewCurrencies (Ok data) ->
       (log (toString data))
       (model, Cmd.none)
-    NewData (Err e) ->
+    NewCurrencies (Err e) ->
       (log (toString e))
       (model, Cmd.none)
+    NewExchange (Ok data) ->
+      (log (toString data))
+      (model, Cmd.none)
+    NewExchange (Err e) ->
+      (log (toString e))
+      (model, Cmd.none)
+
 
 -- VIEW
 view : Model -> Html Msg
@@ -81,11 +96,10 @@ subscriptions model =
 
 
 -- HTTP
-getNewData : String -> Cmd Msg
-getNewData code =
+getCurrenciesData : Cmd Msg
+getCurrenciesData =
   let
-    url =
-      "https://dummy-currency-api.herokuapp.com/currencies"
+    url = "https://dummy-currency-api.herokuapp.com/currencies"
     request =
             Http.request
                 { method = "GET"
@@ -98,8 +112,26 @@ getNewData code =
                 , withCredentials = False
                 }
   in
-    Http.send NewData request
+    Http.send NewCurrencies request
 
+-- HTTP
+getExchangeData : String -> Cmd Msg
+getExchangeData code =
+  let
+    url = "https://dummy-currency-api.herokuapp.com/exchange-rates/" ++ code
+    request =
+            Http.request
+                { method = "GET"
+                , headers =
+                    [ Http.header "Authorization" (" token " ++ apiToken) ]
+                , url = url
+                , body = Http.emptyBody
+                , expect = Http.expectJson exchangeDecoder
+                , timeout = Nothing
+                , withCredentials = False
+                }
+  in
+    Http.send NewExchange request
 
 currenciesDecoder : Decoder (List Currency)
 currenciesDecoder =
@@ -111,3 +143,9 @@ currencyDecoder =
     |> Pipeline.required "code" string
     |> Pipeline.required "name" string
     |> Pipeline.required "sign" string
+
+exchangeDecoder : Decoder Exchange
+exchangeDecoder =
+  Pipeline.decode Exchange
+    |> Pipeline.required "base" string
+    |> Pipeline.required "rates" (keyValuePairs float)
