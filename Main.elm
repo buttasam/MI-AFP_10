@@ -1,11 +1,15 @@
-import Html exposing (Html, beginnerProgram, fieldset, input, label, text, br)
-import Html.Attributes exposing (style, type_)
-import Html.Events exposing (onClick)
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (..)
 
 
 main =
-  Html.beginnerProgram { model = model, view = view, update = update }
-
+  Html.program
+    { init = init
+    , view = view
+    , update = update
+    , subscriptions = subscriptions
+    }
 
 -- MODEL
 
@@ -15,48 +19,62 @@ model : Model
 model =
   0
 
+init : (Model, Cmd Msg)
+init = (model, Cmd.none)
+
 
 -- UPDATE
 
 type Msg = Increment | Decrement
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Increment ->
-      model + 1
+      (model + 1, Cmd.none)
 
     Decrement ->
-      model - 1
+      (model - 1, Cmd.none)
 
 
 -- VIEW
 
 view : Model -> Html Msg
 view model =
-    fieldset []
-    [ label []
+    fieldset [] (generateInupts "")
+
+
+generateInupts : String -> List (Html msg)
+generateInupts s =
+  [ label []
+      [ input [ type_ "text" ] []
+      , text "USD"
+      ]
+    , br [] []
+    ,label []
         [ input [ type_ "text" ] []
-        , text "USD"
+        , text "EUR"
         ]
-      , br [] []
-      ,label []
-          [ input [ type_ "text" ] []
-          , text "EUR"
-          ]
-      , br [] []
-      ,label []
-        [ input [ type_ "text" ] []
-        , text "CZK"
-        ]
-      , br [] []
-      ,label []
-        [ input [ type_ "text" ] []
-        , text "GBP"
-        ]
-      , br [] []
-      ,label []
-        [ input [ type_ "text" ] []
-        , text "CNY"
-        ]
-    ]
+    , br [] []
+    ,label []
+      [ input [ type_ "text" ] []
+      , text "CZK"
+      ]
+    , br [] []
+    ,label []
+      [ input [ type_ "text" ] []
+      , text "GBP"
+      ]
+    , br [] []
+    ,label []
+      [ input [ type_ "text" ] []
+      , text "CNY"
+      ]
+  ]
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.none
