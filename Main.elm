@@ -35,18 +35,20 @@ type alias Exchange =
 
 type alias Model =
   {
+    synchData : Bool,
     currencies : List Currency,
     exchanges : List Exchange
   }
 
 model : Model
-model = Model [] []
+model = Model True [] []
 
 init : (Model, Cmd Msg)
 init = (model, getCurrenciesData)
 
 -- UPDATE
 type Msg = Tick Time
+         | UpdateSynch
          | NewExchange (Result Http.Error Exchange)
          | NewCurrencies (Result Http.Error (List Currency))
 
@@ -57,6 +59,8 @@ update msg model =
     Tick time ->
       (log "ticked")
       (model, getCurrenciesData)
+    UpdateSynch ->
+      ({ model | synchData = not model.synchData }, Cmd.none)
     NewCurrencies (Ok data) ->
       (log (toString data))
       ( { model | currencies = data }, Cmd.none)
@@ -73,25 +77,31 @@ update msg model =
 -- VIEW
 view : Model -> Html Msg
 view model =
-    fieldset [] (generateInupts model.currencies)
+    fieldset [] (List.append (generateInupts model.currencies) (generateRestHtml model.synchData))
 
 
-generateInput : Currency -> Html msg
-generateInput c =
-  label []
-      [ input [ type_ "number" ] []
-      , text c.name
-      , br [] []
-      ]
-
-generateInupts : List (Currency) -> List (Html msg)
+generateInupts : List (Currency) -> List (Html Msg)
 generateInupts currencies =
-  List.map generateInput currencies
+  let
+    generateInput : Currency -> Html msg
+    generateInput c =
+      label []
+          [ input [ type_ "number" ] []
+          , text c.name
+          , br [] []
+          ]
+  in
+    List.map generateInput currencies
+
+generateRestHtml : Bool -> List (Html Msg)
+generateRestHtml synchData = [
+      button [ onClick UpdateSynch ] [ text ( if synchData then "Stop" else "Start") ]
+    ]
 
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Time.every (5 * second) Tick
+  if model.synchData then Time.every (5 * second) Tick else Sub.none
 
 
 -- HTTP
