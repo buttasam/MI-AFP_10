@@ -1,4 +1,5 @@
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, beginnerProgram, fieldset, input, label, text, br)
+import Html.Attributes exposing (style, type_)
 import Html.Events exposing (onClick)
 
 
@@ -33,8 +34,29 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  div []
-    [ button [ onClick Decrement ] [ text "-" ]
-    , div [] [ text (toString model) ]
-    , button [ onClick Increment ] [ text "+" ]
+    fieldset []
+    [ label []
+        [ input [ type_ "text" ] []
+        , text "USD"
+        ]
+      , br [] []
+      ,label []
+          [ input [ type_ "text" ] []
+          , text "EUR"
+          ]
+      , br [] []
+      ,label []
+        [ input [ type_ "text" ] []
+        , text "CZK"
+        ]
+      , br [] []
+      ,label []
+        [ input [ type_ "text" ] []
+        , text "GBP"
+        ]
+      , br [] []
+      ,label []
+        [ input [ type_ "text" ] []
+        , text "CNY"
+        ]
     ]
