@@ -33,17 +33,17 @@ type alias Exchange =
     rates : List (String, Float)
   }
 
-type alias Model = Int
+type alias Model =
+  {
+    currencies : List Currency,
+    exchanges : List Exchange
+  }
 
 model : Model
-model =
-  0
+model = Model [] []
 
 init : (Model, Cmd Msg)
-init = (model, Cmd.none)
-
-dummyCurrencies : List (Currency)
-dummyCurrencies = [Currency "USD" "Dollar" "$", Currency "EUR" "Euro" "€"]
+init = (model, getCurrenciesData)
 
 -- UPDATE
 type Msg = Tick Time
@@ -56,10 +56,10 @@ update msg model =
   case msg of
     Tick time ->
       (log "ticked")
-      (model, getExchangeData "USD")
+      (model, getCurrenciesData)
     NewCurrencies (Ok data) ->
       (log (toString data))
-      (model, Cmd.none)
+      ( { model | currencies = data }, Cmd.none)
     NewCurrencies (Err e) ->
       (log (toString e))
       (model, Cmd.none)
@@ -70,11 +70,10 @@ update msg model =
       (log (toString e))
       (model, Cmd.none)
 
-
 -- VIEW
 view : Model -> Html Msg
 view model =
-    fieldset [] (generateInupts dummyCurrencies)
+    fieldset [] (generateInupts model.currencies)
 
 
 generateInput : Currency -> Html msg
