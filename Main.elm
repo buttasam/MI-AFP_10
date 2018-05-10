@@ -1,6 +1,8 @@
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Time exposing (Time, second)
+import Debug exposing (log)
 
 
 main =
@@ -13,6 +15,13 @@ main =
 
 -- MODEL
 
+type alias Currency =
+  {
+    code : String,
+    name : String,
+    sign : String
+  }
+
 type alias Model = Int
 
 model : Model
@@ -22,59 +31,42 @@ model =
 init : (Model, Cmd Msg)
 init = (model, Cmd.none)
 
+dummyCurrencies : List (Currency)
+dummyCurrencies = [Currency "USD" "Dollar" "$", Currency "EUR" "Euro" "€"]
 
 -- UPDATE
 
-type Msg = Increment | Decrement
+type Msg = Tick Time
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Increment ->
-      (model + 1, Cmd.none)
-
-    Decrement ->
-      (model - 1, Cmd.none)
+    Tick time ->
+      (log "ticked")
+      (model, Cmd.none)
 
 
 -- VIEW
 
 view : Model -> Html Msg
 view model =
-    fieldset [] (generateInupts "")
+    fieldset [] (generateInupts dummyCurrencies)
 
 
-generateInupts : String -> List (Html msg)
-generateInupts s =
-  [ label []
-      [ input [ type_ "text" ] []
-      , text "USD"
+generateInput : Currency -> Html msg
+generateInput c =
+  label []
+      [ input [ type_ "number" ] []
+      , text c.name
+      , br [] []
       ]
-    , br [] []
-    ,label []
-        [ input [ type_ "text" ] []
-        , text "EUR"
-        ]
-    , br [] []
-    ,label []
-      [ input [ type_ "text" ] []
-      , text "CZK"
-      ]
-    , br [] []
-    ,label []
-      [ input [ type_ "text" ] []
-      , text "GBP"
-      ]
-    , br [] []
-    ,label []
-      [ input [ type_ "text" ] []
-      , text "CNY"
-      ]
-  ]
+
+generateInupts : List (Currency) -> List (Html msg)
+generateInupts currencies =
+  List.map generateInput currencies
 
 -- SUBSCRIPTIONS
 
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+  Time.every (5 * second) Tick
