@@ -4,7 +4,9 @@ import Html.Events exposing (..)
 import Time exposing (Time, second)
 import Debug exposing (log)
 import Http
-import Json.Decode as Decode
+import Json.Decode as Decode exposing (..)
+import Json.Decode.Pipeline as Pipeline exposing (decode, required)
+
 
 
 main =
@@ -39,7 +41,7 @@ dummyCurrencies : List (Currency)
 dummyCurrencies = [Currency "USD" "Dollar" "$", Currency "EUR" "Euro" "€"]
 
 -- UPDATE
-type Msg = Tick Time | NewData (Result Http.Error String)
+type Msg = Tick Time | NewData (Result Http.Error (List Currency))
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -48,7 +50,7 @@ update msg model =
       (log "ticked")
       (model, getNewData "USD")
     NewData (Ok data) ->
-      (log data)
+      (log (toString data))
       (model, Cmd.none)
     NewData (Err e) ->
       (log (toString e))
@@ -91,7 +93,7 @@ getNewData code =
                     [ Http.header "Authorization" (" token " ++ apiToken) ]
                 , url = url
                 , body = Http.emptyBody
-                , expect = Http.expectJson decodeData
+                , expect = Http.expectJson currenciesDecoder
                 , timeout = Nothing
                 , withCredentials = False
                 }
@@ -99,6 +101,13 @@ getNewData code =
     Http.send NewData request
 
 
-decodeData : Decode.Decoder String
-decodeData =
-  Decode.at ["code"] Decode.string
+currenciesDecoder : Decoder (List Currency)
+currenciesDecoder =
+    Decode.list currencyDecoder
+
+currencyDecoder : Decoder Currency
+currencyDecoder =
+  Pipeline.decode Currency
+    |> Pipeline.required "code" string
+    |> Pipeline.required "name" string
+    |> Pipeline.required "sign" string
