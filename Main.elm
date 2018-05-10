@@ -6,6 +6,8 @@ import Debug exposing (log)
 import Http
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline as Pipeline exposing (decode, required)
+import List.Extra exposing (find)
+import Tuple exposing (first, second)
 
 
 main =
@@ -35,13 +37,14 @@ type alias Exchange =
 
 type alias Model =
   {
+    firstValue : Float,
     synchData : Bool,
     currencies : List Currency,
-    exchanges : List Exchange
+    firstExchange : Exchange
   }
 
 model : Model
-model = Model True [] []
+model = Model 1 True [] (Exchange "USD" [])
 
 init : (Model, Cmd Msg)
 init = (model, getCurrenciesData)
@@ -49,49 +52,85 @@ init = (model, getCurrenciesData)
 -- UPDATE
 type Msg = Tick Time
          | UpdateSynch
+         | KeyInput String String
          | NewExchange (Result Http.Error Exchange)
          | NewCurrencies (Result Http.Error (List Currency))
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
+  let
+    code = model.firstExchange.base
+  in
   case msg of
     Tick time ->
       (log "ticked")
       (model, getCurrenciesData)
+    KeyInput code data ->
+      log ("Input " ++ data ++ " " ++ code)
+      ({ model | firstValue = (calculateFirtValue data code model) }, Cmd.none)
     UpdateSynch ->
       ({ model | synchData = not model.synchData }, Cmd.none)
     NewCurrencies (Ok data) ->
       (log (toString data))
-      ( { model | currencies = data }, Cmd.none)
+      ( { model | currencies = data }, getExchangeData code)
     NewCurrencies (Err e) ->
       (log (toString e))
       (model, Cmd.none)
     NewExchange (Ok data) ->
       (log (toString data))
-      (model, Cmd.none)
+      ( { model | firstExchange = data }, Cmd.none)
     NewExchange (Err e) ->
       (log (toString e))
       (model, Cmd.none)
 
+calculateFirtValue : String -> String -> Model -> Float
+calculateFirtValue data code model =
+  case String.toFloat data of
+    Err _ ->
+      log "error"
+      0
+    Ok value ->
+      let
+        exchange = (find (\rate -> (first rate) == code ) model.firstExchange.rates)
+      in
+        case exchange of
+          Nothing ->
+            value
+          Just v ->
+            value / (Tuple.second v)
+
 -- VIEW
 view : Model -> Html Msg
 view model =
-    fieldset [] (List.append (generateInupts model.currencies) (generateRestHtml model.synchData))
+    fieldset [] (List.append (generateInupts model) (generateRestHtml model.synchData))
 
 
-generateInupts : List (Currency) -> List (Html Msg)
-generateInupts currencies =
+generateInupts : Model -> List (Html Msg)
+generateInupts model =
   let
-    generateInput : Currency -> Html msg
+    currencies = model.currencies
+    generateInput : Currency -> Html Msg
     generateInput c =
       label []
-          [ input [ type_ "number" ] []
+          [ input [ type_ "number", onInput (KeyInput c.code) , Html.Attributes.value (toString (calculateRate c model))] []
           , text c.name
           , br [] []
           ]
   in
     List.map generateInput currencies
+
+calculateRate : Currency -> Model -> Float
+calculateRate currency model =
+  let
+    exchange = (find (\rate -> (first rate) == currency.code ) model.firstExchange.rates)
+  in
+    case exchange of
+      Nothing ->
+        model.firstValue
+      Just v ->
+        model.firstValue * (Tuple.second v)
+
 
 generateRestHtml : Bool -> List (Html Msg)
 generateRestHtml synchData = [
@@ -101,7 +140,7 @@ generateRestHtml synchData = [
 -- SUBSCRIPTIONS
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  if model.synchData then Time.every (5 * second) Tick else Sub.none
+  if model.synchData then Time.every (5 * Time.second) Tick else Sub.none
 
 
 -- HTTP
