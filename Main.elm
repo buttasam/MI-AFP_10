@@ -64,24 +64,20 @@ update msg model =
   in
   case msg of
     Tick time ->
-      (log "ticked")
       (model, getCurrenciesData)
     KeyInput code data ->
-      log ("Input " ++ data ++ " " ++ code)
       ({ model | firstValue = (calculateFirstValue data code model) }, Cmd.none)
     UpdateSynch ->
       ({ model | synchData = not model.synchData }, Cmd.none)
     NewCurrencies (Ok data) ->
-      (log (toString data))
       ( { model | currencies = data }, getExchangeData code)
     NewCurrencies (Err e) ->
-      (log (toString e))
+      (toString e |> log)
       (model, Cmd.none)
     NewExchange (Ok data) ->
-      (log (toString data))
       ( { model | firstExchange = data }, Cmd.none)
     NewExchange (Err e) ->
-      (log (toString e))
+      (toString e |> log)
       (model, Cmd.none)
 
 calculateFirstValue : String -> String -> Model -> Float
@@ -113,7 +109,7 @@ generateInupts model =
     generateInput : Currency -> Html Msg
     generateInput c =
       label []
-          [ input [ type_ "number", onInput (KeyInput c.code) , Html.Attributes.value (toString (calculateRate c model))] []
+          [ input [ type_ "number", onInput (KeyInput c.code) , Html.Attributes.value (calculateRate c model |> toString )] []
           , text c.name
           , br [] []
           ]
